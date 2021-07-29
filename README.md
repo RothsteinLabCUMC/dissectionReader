@@ -31,7 +31,7 @@ Launch the script by pressing `m` or via the `Plugins > Measure Colonies[m]`
 
 The colonies will be identified and a thresholded image will be shown along with the following message.
 
-<img src="images/message.png" width="220">
+<img src="images/message.png" width="420">
 
 If the red or black marks on the image effectively represent the colonies, click `OK`.
 If not, the threshold can be adjusted.
