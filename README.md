@@ -46,9 +46,9 @@ And then how many rows.
 The results are presented in two different text windows.
 The single-column list represents the row-major-order area calculations for the grid of colonies.
 
-<img src="images/row-major-result.png" width="120">
+<img src="images/row-major-result.png" width="250">
 
-<img src="images/table-result.png" width="120">
+<img src="images/table-result.png" width="250">
 
 The table results list puts the measurements in a row/column table.
 Either or both results lists can be saved as a `csv` files and imported into other software such as _Excel_.
