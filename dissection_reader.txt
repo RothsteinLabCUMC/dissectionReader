@@ -1,0 +1,175 @@
+// Author: John Dittmar
+// Affiliation: Rothstein Lab, COlumbia University Medical Center
+// Last updated: December 9, 2009
+// 		 This program is free software: you can redistribute it and/or modify
+//     it under the terms of the GNU General Public License as published by
+//     the Free Software Foundation, either version 3 of the License, or
+//     (at your option) any later version.
+// 
+//     This program is distributed in the hope that it will be useful,
+//     but WITHOUT ANY WARRANTY; without even the implied warranty of
+//     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//     GNU General Public License for more details.
+// 
+//     You should have received a copy of the GNU General Public License
+//     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+macro "Measure Colonies[m]" {	
+	run("Set Measurements...", "area mean min centroid bounding circularity redirect=None decimal=9");
+	run("Set Scale...", "unit=[]");
+	if(selectionType()>=0){	 // returns -1 if no selection
+		getSelectionBounds(x, y, width, height);
+		oTitle=getTitle();
+		run("Duplicate...", "title=[Threshold Applied Here]");
+		selectWindow(oTitle);
+      	run("Duplicate...", "title=[Original Image]");
+      	selectWindow(oTitle);
+      
+		fileName=getTag("Path");
+		close();
+		
+		
+		
+		selectWindow("Threshold Applied Here");
+		run("8-bit");
+		setAutoThreshold();
+		getLocationAndSize(wx, wy, wwidth, wheight);
+		selectWindow("Original Image");
+		setLocation((wx+wwidth+5), wy);//moves image itself
+		selectWindow("Threshold Applied Here");
+		
+		if(getBoolean("Your thresholded image is displayed on the right.\nAre there any stray marks on this image?\nHas a proper threshold been applied to your image?\nThe colonies you which to measure should be either red or black.\nIf not then select no.\nYou will be able to edit this image and a thresholding window will pop up that will allow you to adjust the threshold manually.")){
+			run("Convert to Mask");
+			analyzeP();
+		}
+		else{
+			selectWindow("Threshold Applied Here");
+			resetThreshold;
+			run("Threshold...");
+			waitForUser("Adjust Threshold", "Edit your image and move the sliders on the threshold dialog box until you are satisfied.  Once you are press 'okay' to continue.");
+			selectWindow("Threshold Applied Here");
+			run("Convert to Mask");
+			analyzeP();
+		}
+		
+	}
+	else
+		showMessage("In order for this macro to work properly you must place a\nselection box around the colonies whose sizes you wish to measure.");
+	
+	open(fileName);
+}
+
+function analyzeP(){
+	run("Set Measurements...", "area mean min centroid bounding redirect=None decimal=9");
+	numColumns=0;
+	numRows=0;
+	while(numColumns==0 || numRows==0){
+		if(numColumns==0 )
+			numColumns=getNumber("How many columns?",0);
+		if(numRows==0)
+			numRows=getNumber("How many rows?",0);
+	}
+	selectWindow("Threshold Applied Here");
+	run("Convert to Mask");
+	width=getWidth();
+	height=getHeight();
+	// grid width and height
+	grid_width=width/numColumns;
+	grid_height=height/numRows;
+	run("Clear Results");
+	run("Select All"); 
+	run("Analyze Particles...", "size=0-Infinity circularity=0.00-1.00 show=Nothing display clear");
+
+	// following array will hold the x and y coordinates of the centroid of all colonies and their sizes
+	x_centroids=newArray(nResults);
+	y_centroids=newArray(nResults);
+	x_start=newArray(nResults);
+	y_start=newArray(nResults);
+	sizes=newArray(nResults);
+
+	// get centroid coordinates and sizes
+	for (i=0; i<nResults; i++) {
+		x_centroids[i]=getResult("X",i);
+		y_centroids[i]=getResult("Y",i);
+		x_start[i]=getResult("BX",i);
+		y_start[i]=getResult("BY",i);
+		sizes[i]=getResult("Area", i);
+	}
+	results=newArray((numColumns*numRows));
+	placements=newArray((numColumns*numRows));
+	colonyNum=0;
+	assignments=0;
+	placedIndex=0;
+	for(i=0;i<numRows;i++){
+		for(j=0;j<numColumns;j++){
+			results[colonyNum]=0;
+			xFloor=j*grid_width;
+			xCeiling=xFloor+grid_width;
+			yFloor=i*grid_height;
+			yCeiling=yFloor+grid_height;
+			for(k=0; k < x_centroids.length; k++){
+				if(x_centroids[k] > xFloor && x_centroids[k] < xCeiling){
+					if(y_centroids[k] > yFloor && y_centroids[k] < yCeiling){
+						if(sizes[k] > results[colonyNum]){
+							results[colonyNum]=sizes[k];
+							placedIndex=k;
+							assignments++;
+						}
+					}
+				}
+			}
+			placements[colonyNum]=placedIndex;
+			colonyNum++;
+		}
+	}
+	
+	
+	tableFormat="[Colony Size Results - Table Format]";
+	run("New... ", "name="+tableFormat+" type=Table");
+	print(tableFormat, "\\Clear");
+	colFormat="[Colony Size Results - Single Column Format]";
+	run("New... ", "name="+colFormat+" type=Table");
+	print(colFormat, "\\Clear");
+	selectWindow("Original Image");
+	setColor(255,255,0);
+	setLineWidth(2);
+	run("Clear Results");
+	for(k=0;k<placements.length;k++){
+		if(results[k]>0)
+			drawOval(x_start[placements[k]], y_start[placements[k]], ((x_centroids[placements[k]]-x_start[placements[k]])*2), ((y_centroids[placements[k]]-y_start[placements[k]])*2));
+	}
+	for(k=0;k<results.length;k=k+numColumns){
+		temp="";
+		for(i=k;i<(k+numColumns);i++)
+			temp=temp+results[i]+"\t";
+		print(tableFormat,temp);
+	}
+	printArray(results,colFormat);
+	selectWindow("Threshold Applied Here");
+	close();
+	if (isOpen("Results")) {
+         selectWindow("Results");
+         run("Close");
+    }
+	//selectWindow("Original Image");
+	//close();
+}
+
+function printArray(a,b) {
+	for (i=0; i<a.length; i++)
+		print(b,a[i]);
+}
+
+
+function getTag(tag){
+	info = getImageInfo();
+	index1 = indexOf(info, tag);
+	if (index1==-1) return "";
+	index1 = indexOf(info, ":", index1);
+	if (index1==-1) return "";
+	index1++;
+	index2 = indexOf(info, "\n", index1);
+	value = substring(info, index1+1, index2);
+	return value;
+}
