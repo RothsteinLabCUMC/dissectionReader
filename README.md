@@ -28,3 +28,25 @@ Use the rectangular selection box to mark the set of colonies to be measured.
 ![selected colony grid](images/selection.png)
 
 Launch the script by pressing `m` or via the `Plugins > Measure Colonies[m]`
+
+The colonies will be identified and a thresholded image will be shown along with the following message.
+
+![threshold message](images/message.png)
+
+If the red or black marks on the image effectively represent the colonies, click `OK`.
+If not, the threshold can be adjusted.
+The script with ask how many columns are represented in the image.
+
+![columns](images/columns.png)
+
+And then how many rows.
+
+![rows](images/rows.png)
+
+The results are presented in two different text windows.
+The single-column list represents the row-major-order area calculations for the grid of colonies.
+
+![results-rows](images/row-major-result.png)
+
+The table results list puts the measurements in a row/column table.
+Either or both results lists can be saved as a `csv` files and imported into other software such as _Excel_.
